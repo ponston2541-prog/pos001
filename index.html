@@ -5,34 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ระบบขายหน้าร้าน (POS)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <!-- Feather Icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
   <style>
     body { font-family: 'Kanit', sans-serif; -webkit-tap-highlight-color: transparent; }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-track { background: #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+    /* CSS สำหรับการพิมพ์ใบเสร็จ */
+    @media print {
+      body * { visibility: hidden; }
+      #printableReceipt, #printableReceipt * { visibility: visible; }
+      #printableReceipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 80mm;
+        padding: 0;
+        margin: 0;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+<body class="bg-slate-50 text-slate-700 h-screen flex flex-col overflow-hidden select-none">
 
-  <!-- Header (Desktop & Tablet) -->
-  <header class="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex justify-between items-center shrink-0 shadow-sm">
-    <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-100">
+  <!-- Header -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-6 py-2.5 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center font-semibold text-base shadow-sm">
         P
       </div>
       <div>
-        <h1 class="font-bold text-slate-800 text-sm md:text-base leading-tight">ระบบขายหน้าร้าน (POS)</h1>
-        <p class="text-[10px] md:text-xs text-slate-400">รองรับมือถือ & แท็บเล็ต</p>
+        <h1 class="font-medium text-slate-800 text-sm md:text-base leading-tight">ระบบขายหน้าร้าน</h1>
+        <p class="text-[10px] text-slate-400 font-light">Point of Sale System</p>
       </div>
     </div>
     
-    <!-- Top Nav (แสดงเฉพาะจอคอม/แท็บเล็ตใหญ่) -->
-    <div class="hidden md:flex gap-2">
-      <button onclick="switchTab('pos')" id="tabBtnPos" class="px-4 py-2 rounded-xl font-medium text-xs transition-all bg-indigo-600 text-white shadow-sm">🛒 ขายสินค้า</button>
-      <button onclick="switchTab('manage')" id="tabBtnManage" class="px-4 py-2 rounded-xl font-medium text-xs transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">📦 จัดการสินค้า</button>
-      <button onclick="switchTab('summary')" id="tabBtnSummary" class="px-4 py-2 rounded-xl font-medium text-xs transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">📊 สรุปยอดขาย</button>
+    <!-- Top Nav (Desktop & Tablet) -->
+    <div class="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/50">
+      <button onclick="switchTab('pos')" id="tabBtnPos" class="px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all bg-white text-slate-800 shadow-sm flex items-center gap-1.5">
+        <i data-feather="shopping-bag" class="w-3.5 h-3.5"></i> ขายสินค้า
+      </button>
+      <button onclick="switchTab('manage')" id="tabBtnManage" class="px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+        <i data-feather="box" class="w-3.5 h-3.5"></i> จัดการสินค้า
+      </button>
+      <button onclick="switchTab('summary')" id="tabBtnSummary" class="px-3.5 py-1.5 rounded-xl font-medium text-xs transition-all text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+        <i data-feather="pie-chart" class="w-3.5 h-3.5"></i> สรุปยอดขาย
+      </button>
     </div>
   </header>
 
@@ -42,123 +69,127 @@
     <!-- TAB 1: POS -->
     <div id="tabPos" class="h-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 relative">
       <!-- Left: Products -->
-      <div class="md:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden h-full">
-        <div class="p-2.5 md:p-3 border-b border-slate-100 flex gap-2 items-center bg-slate-50/50">
+      <div class="md:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden h-full">
+        <div class="p-2.5 border-b border-slate-100 flex gap-2 items-center bg-slate-50/50">
           <div class="relative flex-1">
-            <input type="text" id="barcodeScanner" placeholder="สแกนบาร์โค้ด / ค้นหาสินค้า..." class="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500 shadow-sm">
-            <span class="absolute left-2.5 top-2 text-slate-400 text-xs">🔍</span>
+            <i data-feather="search" class="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400"></i>
+            <input type="text" id="barcodeScanner" placeholder="สแกนบาร์โค้ด / ค้นหาสินค้า..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-slate-400 transition-colors">
           </div>
-          <button onclick="loadProducts()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-medium shrink-0">🔄 รีเฟรช</button>
+          <button onclick="loadProducts()" class="p-2 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-xl text-xs font-medium shrink-0 transition-colors">
+            <i data-feather="rotate-cw" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
-        <div class="flex-1 overflow-y-auto p-2.5 md:p-3">
-          <div id="productList" class="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
+        <div class="flex-1 overflow-y-auto p-3">
+          <div id="productList" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             <div class="col-span-full py-16 text-center text-slate-400 text-xs font-light">กำลังโหลดรายการสินค้า...</div>
           </div>
         </div>
       </div>
 
-      <!-- Right: Cart & Payment Panel -->
-      <div id="cartPanel" class="fixed md:relative inset-x-0 bottom-0 top-0 md:top-auto z-40 bg-white md:col-span-5 flex flex-col rounded-t-3xl md:rounded-2xl border border-slate-200/80 shadow-2xl md:shadow-sm overflow-hidden transition-transform duration-300 transform translate-y-full md:translate-y-0">
+      <!-- Right: Cart Panel -->
+      <div id="cartPanel" class="fixed md:relative inset-x-0 bottom-0 top-0 md:top-auto z-40 bg-white md:col-span-5 flex flex-col rounded-t-3xl md:rounded-2xl border border-slate-200/60 shadow-xl md:shadow-sm overflow-hidden transition-transform duration-300 transform translate-y-full md:translate-y-0">
         <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div class="flex items-center gap-2">
-            <button onclick="toggleMobileCart(false)" class="md:hidden text-slate-400 text-lg p-1">✕</button>
-            <h2 class="font-semibold text-xs md:text-sm text-slate-700">ตะกร้าสินค้า</h2>
+            <button onclick="toggleMobileCart(false)" class="md:hidden text-slate-400 p-1"><i data-feather="x" class="w-4 h-4"></i></button>
+            <h2 class="font-medium text-xs md:text-sm text-slate-700 flex items-center gap-1.5">
+              <i data-feather="shopping-cart" class="w-4 h-4 text-slate-500"></i> ตะกร้าสินค้า
+            </h2>
           </div>
-          <button onclick="clearCart()" class="text-xs text-rose-500 hover:underline font-medium">ล้างตะกร้า</button>
+          <button onclick="clearCart()" class="text-xs text-rose-500 hover:text-rose-600 font-normal transition-colors">ล้างตะกร้า</button>
         </div>
         
         <div id="cartList" class="flex-1 overflow-y-auto p-3 space-y-2">
           <div class="h-full flex items-center justify-center text-slate-400 text-xs font-light">ยังไม่มีสินค้าในตะกร้า</div>
         </div>
 
-        <div class="p-3 bg-slate-50 border-t border-slate-100 space-y-2.5">
-          <div class="space-y-1 text-xs">
+        <div class="p-3 bg-slate-50/80 border-t border-slate-100 space-y-2.5">
+          <div class="space-y-1.5 text-xs">
             <div class="flex justify-between text-slate-500">
               <span>รวมเป็นเงิน</span>
-              <span id="cartSubtotal" class="font-medium">0.00 ฿</span>
+              <span id="cartSubtotal" class="font-medium text-slate-700">0.00 ฿</span>
             </div>
             <div class="flex justify-between items-center text-slate-500">
               <span>ส่วนลด (บาท)</span>
-              <input type="number" id="inputDiscount" value="0" min="0" oninput="renderCart()" class="w-16 md:w-20 px-2 py-1 text-right bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-indigo-500">
+              <input type="number" id="inputDiscount" value="0" min="0" oninput="renderCart()" class="w-20 px-2 py-1 text-right bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-slate-400">
             </div>
-            <div class="flex justify-between text-slate-800 font-bold text-sm md:text-base pt-1.5 border-t border-slate-200">
+            <div class="flex justify-between text-slate-800 font-semibold text-sm md:text-base pt-2 border-t border-slate-200/60">
               <span>ยอดรวมสุทธิ</span>
               <span id="cartFinalTotal" class="text-indigo-600">0.00 ฿</span>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
+          <div class="grid grid-cols-2 gap-2 pt-1">
             <div>
-              <label class="block text-[10px] text-slate-400 mb-0.5">ช่องทางชำระเงิน</label>
-              <select id="selectPayment" onchange="togglePaymentInput()" class="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none">
+              <label class="block text-[10px] text-slate-400 mb-1">ช่องทางชำระเงิน</label>
+              <select id="selectPayment" onchange="togglePaymentInput()" class="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none text-slate-700">
                 <option value="CASH">💵 เงินสด</option>
                 <option value="TRANSFER">📲 โอนเงิน / QR</option>
               </select>
             </div>
             <div id="cashInputContainer">
-              <label class="block text-[10px] text-slate-400 mb-0.5">รับเงินมา (บาท)</label>
+              <label class="block text-[10px] text-slate-400 mb-1">รับเงินมา (บาท)</label>
               <input type="number" id="inputCash" placeholder="0.00" class="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none">
             </div>
           </div>
 
-          <button onclick="handleCheckout()" id="btnCheckout" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-xs shadow-md shadow-indigo-100">
-            ชำระเงิน
+          <button onclick="handleCheckout()" id="btnCheckout" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium text-xs shadow-sm transition-all flex items-center justify-center gap-1.5">
+            <i data-feather="check-circle" class="w-4 h-4"></i> ชำระเงิน
           </button>
         </div>
       </div>
 
       <!-- Mobile Cart Floating Trigger -->
-      <div id="mobileCartBar" onclick="toggleMobileCart(true)" class="md:hidden fixed bottom-16 left-4 right-4 bg-indigo-600 text-white rounded-2xl p-3 flex justify-between items-center shadow-lg shadow-indigo-200 z-30">
+      <div id="mobileCartBar" onclick="toggleMobileCart(true)" class="md:hidden fixed bottom-16 left-4 right-4 bg-slate-900 text-white rounded-2xl p-3 flex justify-between items-center shadow-lg z-30">
         <div class="flex items-center gap-2">
-          <span class="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center font-bold text-xs" id="mobileCartCount">0</span>
+          <span class="w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center font-medium text-[10px]" id="mobileCartCount">0</span>
           <span class="text-xs font-medium">ดูตะกร้าสินค้า</span>
         </div>
-        <span class="font-bold text-xs" id="mobileCartTotal">0.00 ฿</span>
+        <span class="font-semibold text-xs" id="mobileCartTotal">0.00 ฿</span>
       </div>
     </div>
 
     <!-- TAB 2: Manage Products -->
     <div id="tabManage" class="h-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 overflow-y-auto md:overflow-hidden hidden">
-      <div class="md:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm h-fit">
-        <h2 class="font-bold text-slate-700 text-xs md:text-sm mb-3">เพิ่มสินค้าใหม่</h2>
-        <form id="addProductForm" onsubmit="submitNewProduct(event)" class="space-y-2.5 text-xs">
+      <div class="md:col-span-4 bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm h-fit">
+        <h2 class="font-medium text-slate-800 text-xs md:text-sm mb-3 border-b border-slate-100 pb-2">เพิ่มสินค้าใหม่</h2>
+        <form id="addProductForm" onsubmit="submitNewProduct(event)" class="space-y-3 text-xs">
           <div>
-            <label class="block font-medium text-slate-600 mb-1">ชื่อสินค้า</label>
-            <input type="text" id="pName" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none">
+            <label class="block text-slate-500 mb-1">ชื่อสินค้า</label>
+            <input type="text" id="pName" required class="w-full p-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white transition-colors">
           </div>
           <div>
-            <label class="block font-medium text-slate-600 mb-1">หมวดหมู่</label>
-            <input type="text" id="pCategory" placeholder="เช่น อาหาร, เครื่องดื่ม" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none">
+            <label class="block text-slate-500 mb-1">หมวดหมู่</label>
+            <input type="text" id="pCategory" placeholder="เช่น เครื่องดื่ม, เบเกอรี่" class="w-full p-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white transition-colors">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block font-medium text-slate-600 mb-1">ราคา (บาท)</label>
-              <input type="number" id="pPrice" step="0.01" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none">
+              <label class="block text-slate-500 mb-1">ราคา (บาท)</label>
+              <input type="number" id="pPrice" step="0.01" required class="w-full p-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white transition-colors">
             </div>
             <div>
-              <label class="block font-medium text-slate-600 mb-1">จำนวนสต็อก</label>
-              <input type="number" id="pStock" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none">
+              <label class="block text-slate-500 mb-1">จำนวนสต็อก</label>
+              <input type="number" id="pStock" required class="w-full p-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white transition-colors">
             </div>
           </div>
           <div>
-            <label class="block font-medium text-slate-600 mb-1">บาร์โค้ด / รหัสสินค้า</label>
-            <input type="text" id="pBarcode" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none">
+            <label class="block text-slate-500 mb-1">บาร์โค้ด / รหัสสินค้า</label>
+            <input type="text" id="pBarcode" class="w-full p-2 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white transition-colors">
           </div>
-          <button type="submit" id="btnSaveProduct" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md shadow-indigo-100">
+          <button type="submit" id="btnSaveProduct" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl shadow-sm transition-all mt-2">
             บันทึกสินค้า
           </button>
         </form>
       </div>
 
-      <div class="md:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col overflow-hidden min-h-[300px]">
+      <div class="md:col-span-8 bg-white rounded-2xl border border-slate-200/60 shadow-sm flex flex-col overflow-hidden min-h-[300px]">
         <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <h2 class="font-bold text-slate-700 text-xs md:text-sm">รายการสินค้าทั้งหมด</h2>
-          <span id="manageProductCount" class="text-xs text-slate-400">0 รายการ</span>
+          <h2 class="font-medium text-slate-800 text-xs md:text-sm">รายการสินค้าทั้งหมด</h2>
+          <span id="manageProductCount" class="text-xs text-slate-400 font-light">0 รายการ</span>
         </div>
         <div class="flex-1 overflow-x-auto overflow-y-auto">
           <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
             <thead>
-              <tr class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+              <tr class="bg-slate-50/50 text-slate-400 font-normal border-b border-slate-100">
                 <th class="p-2.5">รหัส</th>
                 <th class="p-2.5">ชื่อสินค้า</th>
                 <th class="p-2.5">หมวดหมู่</th>
@@ -167,8 +198,8 @@
                 <th class="p-2.5 text-center">บาร์โค้ด</th>
               </tr>
             </thead>
-            <tbody id="manageProductTableBody" class="divide-y divide-slate-100">
-              <tr><td colspan="6" class="text-center p-8 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+            <tbody id="manageProductTableBody" class="divide-y divide-slate-100 text-slate-600">
+              <tr><td colspan="6" class="text-center p-8 text-slate-400 font-light">กำลังโหลดข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
@@ -176,61 +207,61 @@
     </div>
 
     <!-- TAB 3: Summary -->
-    <div id="tabSummary" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm p-3 md:p-5 overflow-y-auto hidden space-y-4">
+    <div id="tabSummary" class="h-full flex flex-col bg-white rounded-2xl border border-slate-200/60 shadow-sm p-3 md:p-5 overflow-y-auto hidden space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
         <div>
-          <h2 class="font-bold text-slate-800 text-sm md:text-base">สรุปยอดขายประจำวัน</h2>
-          <p class="text-[10px] md:text-xs text-slate-400">ภาพรวมรายได้และสินค้ายอดนิยม</p>
+          <h2 class="font-medium text-slate-800 text-sm md:text-base">สรุปยอดขายประจำวัน</h2>
+          <p class="text-[10px] text-slate-400 font-light">ภาพรวมรายได้และสินค้ายอดนิยม</p>
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <input type="date" id="summaryDatePicker" class="flex-1 sm:flex-none p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none">
-          <button onclick="loadDailySummary()" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 shadow-sm">ค้นหา</button>
+          <button onclick="loadDailySummary()" class="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors shadow-sm">ค้นหา</button>
         </div>
       </div>
 
       <!-- KPI Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-4">
-        <div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
-          <p class="text-[10px] font-medium text-indigo-500 uppercase">รายได้สุทธิ</p>
-          <h3 id="kpiNetRevenue" class="text-lg md:text-xl font-bold text-indigo-700 mt-0.5">0.00 ฿</h3>
+        <div class="p-3 bg-slate-50/50 border border-slate-100 rounded-2xl">
+          <p class="text-[10px] font-normal text-slate-400 uppercase tracking-wider">รายได้สุทธิ</p>
+          <h3 id="kpiNetRevenue" class="text-base md:text-lg font-semibold text-slate-800 mt-0.5">0.00 ฿</h3>
         </div>
-        <div class="p-3 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
-          <p class="text-[10px] font-medium text-emerald-500 uppercase">ยอดขายรวม</p>
-          <h3 id="kpiTotalSales" class="text-lg md:text-xl font-bold text-emerald-700 mt-0.5">0.00 ฿</h3>
+        <div class="p-3 bg-slate-50/50 border border-slate-100 rounded-2xl">
+          <p class="text-[10px] font-normal text-slate-400 uppercase tracking-wider">ยอดขายรวม</p>
+          <h3 id="kpiTotalSales" class="text-base md:text-lg font-semibold text-slate-800 mt-0.5">0.00 ฿</h3>
         </div>
-        <div class="p-3 bg-amber-50/50 border border-amber-100 rounded-2xl">
-          <p class="text-[10px] font-medium text-amber-500 uppercase">ส่วนลดรวม</p>
-          <h3 id="kpiTotalDiscount" class="text-lg md:text-xl font-bold text-amber-700 mt-0.5">0.00 ฿</h3>
+        <div class="p-3 bg-slate-50/50 border border-slate-100 rounded-2xl">
+          <p class="text-[10px] font-normal text-slate-400 uppercase tracking-wider">ส่วนลดรวม</p>
+          <h3 id="kpiTotalDiscount" class="text-base md:text-lg font-semibold text-slate-800 mt-0.5">0.00 ฿</h3>
         </div>
-        <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
-          <p class="text-[10px] font-medium text-blue-500 uppercase">ออเดอร์ทั้งหมด</p>
-          <h3 id="kpiTotalOrders" class="text-lg md:text-xl font-bold text-blue-700 mt-0.5">0 รายการ</h3>
+        <div class="p-3 bg-slate-50/50 border border-slate-100 rounded-2xl">
+          <p class="text-[10px] font-normal text-slate-400 uppercase tracking-wider">ออเดอร์ทั้งหมด</p>
+          <h3 id="kpiTotalOrders" class="text-base md:text-lg font-semibold text-slate-800 mt-0.5">0 รายการ</h3>
         </div>
       </div>
 
       <!-- Details Section -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-5 flex-1">
-        <div class="lg:col-span-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-3">
-          <h3 class="font-bold text-slate-700 text-xs mb-2.5">🔥 5 อันดับสินค้ายอดฮิต</h3>
+        <div class="lg:col-span-4 bg-slate-50/30 border border-slate-100 rounded-2xl p-3">
+          <h3 class="font-medium text-slate-700 text-xs mb-2.5">5 อันดับสินค้ายอดฮิต</h3>
           <div id="topProductsContainer" class="space-y-1.5">
-            <p class="text-xs text-slate-400 py-4 text-center">ไม่มีข้อมูล</p>
+            <p class="text-xs text-slate-400 py-4 text-center font-light">ไม่มีข้อมูล</p>
           </div>
         </div>
 
-        <div class="lg:col-span-8 bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col min-h-[250px]">
-          <h3 class="font-bold text-slate-700 text-xs mb-2.5">📜 ประวัติการขายของวัน</h3>
+        <div class="lg:col-span-8 bg-slate-50/30 border border-slate-100 rounded-2xl p-3 flex flex-col min-h-[250px]">
+          <h3 class="font-medium text-slate-700 text-xs mb-2.5">ประวัติการขายของวัน</h3>
           <div class="flex-1 overflow-x-auto overflow-y-auto">
             <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
-                <tr class="text-slate-400 font-medium border-b border-slate-200/60">
+                <tr class="text-slate-400 font-normal border-b border-slate-200/60">
                   <th class="pb-2">เวลา</th>
                   <th class="pb-2">เลขที่ใบเสร็จ</th>
                   <th class="pb-2">ช่องทาง</th>
                   <th class="pb-2 text-right">ยอดเงิน</th>
                 </tr>
               </thead>
-              <tbody id="recentSalesBody" class="divide-y divide-slate-200/40">
-                <tr><td colspan="4" class="text-center p-4 text-slate-400">ไม่มีข้อมูลการขาย</td></tr>
+              <tbody id="recentSalesBody" class="divide-y divide-slate-200/40 text-slate-600">
+                <tr><td colspan="4" class="text-center p-4 text-slate-400 font-light">ไม่มีข้อมูลการขาย</td></tr>
               </tbody>
             </table>
           </div>
@@ -240,49 +271,50 @@
 
   </main>
 
-  <!-- Mobile Bottom Navigation Bar (แสดงเฉพาะมือถือ) -->
-  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex justify-around items-center h-14 z-30">
-    <button onclick="switchTab('pos')" id="mNavPos" class="flex flex-col items-center justify-center w-full h-full text-indigo-600 font-medium">
-      <span class="text-base">🛒</span>
+  <!-- Mobile Bottom Nav -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-slate-200/60 flex justify-around items-center h-14 z-30">
+    <button onclick="switchTab('pos')" id="mNavPos" class="flex flex-col items-center justify-center w-full h-full text-slate-800 font-medium">
+      <i data-feather="shopping-bag" class="w-4 h-4 mb-0.5"></i>
       <span class="text-[10px]">ขายสินค้า</span>
     </button>
     <button onclick="switchTab('manage')" id="mNavManage" class="flex flex-col items-center justify-center w-full h-full text-slate-400 font-medium">
-      <span class="text-base">📦</span>
+      <i data-feather="box" class="w-4 h-4 mb-0.5"></i>
       <span class="text-[10px]">จัดการสินค้า</span>
     </button>
     <button onclick="switchTab('summary')" id="mNavSummary" class="flex flex-col items-center justify-center w-full h-full text-slate-400 font-medium">
-      <span class="text-base">📊</span>
+      <i data-feather="pie-chart" class="w-4 h-4 mb-0.5"></i>
       <span class="text-[10px]">สรุปยอด</span>
     </button>
   </nav>
 
   <!-- Modal: QR PromptPay -->
-  <div id="qrModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+  <div id="qrModal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-3xl p-5 w-full max-w-xs text-center shadow-xl space-y-3">
-      <h3 class="font-bold text-slate-800 text-sm">สแกนชำระเงิน PromptPay</h3>
-      <div class="bg-white p-2 rounded-2xl border border-slate-100 shadow-inner flex justify-center items-center">
+      <h3 class="font-medium text-slate-800 text-sm">สแกนชำระเงิน PromptPay</h3>
+      <div class="bg-white p-2 rounded-2xl border border-slate-100 flex justify-center items-center">
         <div id="qrcode"></div>
       </div>
       <div>
         <p class="text-[10px] text-slate-400">ยอดชำระทั้งสิ้น</p>
-        <p id="qrAmountText" class="text-lg font-bold text-indigo-600">0.00 ฿</p>
+        <p id="qrAmountText" class="text-lg font-semibold text-slate-800">0.00 ฿</p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-1">
         <button onclick="closeQrModal()" class="py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-medium">ยกเลิก</button>
-        <button onclick="confirmQrPayment()" class="py-2 bg-indigo-600 text-white rounded-xl text-xs font-medium shadow-sm">ยืนยันรับเงิน</button>
+        <button onclick="confirmQrPayment()" class="py-2 bg-slate-900 text-white rounded-xl text-xs font-medium shadow-sm">ยืนยันรับเงิน</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Receipt -->
-  <div id="receiptModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-xl space-y-3 text-xs">
+  <div id="receiptModal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div id="printableReceipt" class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-xl space-y-3 text-xs">
       <div class="text-center space-y-0.5">
-        <h3 class="font-bold text-slate-800 text-sm">ใบเสร็จรับเงิน</h3>
-        <p id="receiptSaleId" class="text-[10px] text-slate-400">#INV-0000</p>
+        <h3 class="font-medium text-slate-800 text-sm">ใบเสร็จรับเงิน</h3>
+        <p id="receiptTime" class="text-[10px] text-slate-400 font-light"></p>
+        <p id="receiptSaleId" class="text-[10px] text-slate-400 font-mono">#INV-0000</p>
       </div>
       
-      <div id="receiptItems" class="space-y-1 border-t border-b border-dashed border-slate-200 py-2.5 max-h-40 overflow-y-auto"></div>
+      <div id="receiptItems" class="space-y-1.5 border-t border-b border-dashed border-slate-200 py-2.5 max-h-40 overflow-y-auto"></div>
 
       <div class="space-y-1 text-[11px]">
         <div class="flex justify-between text-slate-500">
@@ -293,7 +325,7 @@
           <span>ส่วนลด</span>
           <span id="receiptDiscount">0.00 ฿</span>
         </div>
-        <div class="flex justify-between font-bold text-slate-800 text-xs pt-1">
+        <div class="flex justify-between font-semibold text-slate-800 text-xs pt-1">
           <span>ชำระสุทธิ</span>
           <span id="receiptFinal">0.00 ฿</span>
         </div>
@@ -307,22 +339,32 @@
         </div>
       </div>
 
-      <button onclick="closeReceiptModal()" class="w-full py-2 bg-slate-800 text-white rounded-xl font-medium shadow-sm">
-        ปิดหน้าต่าง
-      </button>
+      <div class="text-center text-[10px] text-slate-400 pt-1 font-light">
+        ขอบคุณที่ใช้บริการ
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-2 no-print">
+        <button onclick="closeReceiptModal()" class="py-2 bg-slate-100 text-slate-600 rounded-xl font-medium">
+          ปิด
+        </button>
+        <button onclick="printReceipt()" class="py-2 bg-slate-900 text-white rounded-xl font-medium shadow-sm flex items-center justify-center gap-1">
+          <i data-feather="printer" class="w-3.5 h-3.5"></i> พิมพ์ใบเสร็จ
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
     // ------------------- CONFIGURATION -------------------
     const PROMPTPAY_NUMBER = "0963211502"; 
-    const API_URL = "https://script.google.com/macros/s/AKfycbzbDeQA-_2y7dAmP9FwYL8PAqDQGl7y6EBgE2e4lPaaZdH47G3dG3cAf456Rcna6_lI/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbyiOuN8Y8RJrTeMWCzsgYhD2nkWFStPd3TShUHfgdTbxasHQzi-1MFvCm2g6fSjCX6k/exec"; 
 
     let products = [];
     let cart = [];
 
     // ------------------- INITIALIZATION -------------------
     window.onload = () => {
+      feather.replace();
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('summaryDatePicker').value = today;
 
@@ -332,7 +374,7 @@
         if (e.key === 'Enter') {
           const val = this.value.trim();
           if (val) {
-            const item = products.find(p => p.Barcode === val || p.Product_ID === val);
+            const item = products.find(p => String(p.Barcode) === val || String(p.Product_ID) === val);
             if (item) addToCart(item);
             else alert('ไม่พบสินค้านี้');
             this.value = '';
@@ -347,44 +389,42 @@
       document.getElementById('tabManage').classList.add('hidden');
       document.getElementById('tabSummary').classList.add('hidden');
 
-      const btnClasses = ["bg-slate-100", "text-slate-600"];
-      const activeClasses = ["bg-indigo-600", "text-white", "shadow-sm"];
+      const btnClasses = ["bg-white", "text-slate-800", "shadow-sm"];
+      const mNavActive = ['text-slate-800'];
+      const mNavInactive = ['text-slate-400'];
 
       ['Pos', 'Manage', 'Summary'].forEach(t => {
         const btn = document.getElementById('tabBtn' + t);
         const mNav = document.getElementById('mNav' + t);
         if (btn) {
-          btn.classList.remove(...activeClasses);
-          btn.classList.add(...btnClasses);
+          btn.classList.remove(...btnClasses);
+          btn.classList.add('text-slate-500');
         }
         if (mNav) {
-          mNav.classList.remove('text-indigo-600');
-          mNav.classList.add('text-slate-400');
+          mNav.classList.remove(...mNavActive);
+          mNav.classList.add(...mNavInactive);
         }
       });
 
       if (tab === 'pos') {
         document.getElementById('tabPos').classList.remove('hidden');
         if (document.getElementById('tabBtnPos')) {
-          document.getElementById('tabBtnPos').classList.remove(...btnClasses);
-          document.getElementById('tabBtnPos').classList.add(...activeClasses);
+          document.getElementById('tabBtnPos').classList.add(...btnClasses);
         }
-        document.getElementById('mNavPos').classList.replace('text-slate-400', 'text-indigo-600');
+        document.getElementById('mNavPos').classList.replace('text-slate-400', 'text-slate-800');
       } else if (tab === 'manage') {
         document.getElementById('tabManage').classList.remove('hidden');
         if (document.getElementById('tabBtnManage')) {
-          document.getElementById('tabBtnManage').classList.remove(...btnClasses);
-          document.getElementById('tabBtnManage').classList.add(...activeClasses);
+          document.getElementById('tabBtnManage').classList.add(...btnClasses);
         }
-        document.getElementById('mNavManage').classList.replace('text-slate-400', 'text-indigo-600');
+        document.getElementById('mNavManage').classList.replace('text-slate-400', 'text-slate-800');
         renderManageProductTable();
       } else if (tab === 'summary') {
         document.getElementById('tabSummary').classList.remove('hidden');
         if (document.getElementById('tabBtnSummary')) {
-          document.getElementById('tabBtnSummary').classList.remove(...btnClasses);
-          document.getElementById('tabBtnSummary').classList.add(...activeClasses);
+          document.getElementById('tabBtnSummary').classList.add(...btnClasses);
         }
-        document.getElementById('mNavSummary').classList.replace('text-slate-400', 'text-indigo-600');
+        document.getElementById('mNavSummary').classList.replace('text-slate-400', 'text-slate-800');
         loadDailySummary();
       }
     }
@@ -407,7 +447,7 @@
         .then(res => res.json())
         .then(data => {
           if (!data || data.length === 0) {
-            list.innerHTML = `<div class="col-span-full py-16 text-center text-slate-400 text-xs">ไม่พบข้อมูลสินค้า</div>`;
+            list.innerHTML = `<div class="col-span-full py-16 text-center text-slate-400 text-xs font-light">ไม่พบข้อมูลสินค้า</div>`;
             return;
           }
           products = data;
@@ -493,29 +533,29 @@
 
           const topContainer = document.getElementById('topProductsContainer');
           if (res.topProducts.length === 0) {
-            topContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">ไม่มีข้อมูล</p>`;
+            topContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center font-light">ไม่มีข้อมูล</p>`;
           } else {
             topContainer.innerHTML = res.topProducts.map((p, index) => `
               <div class="flex items-center justify-between p-2 bg-white rounded-xl text-xs border border-slate-100">
                 <div class="flex items-center gap-2">
-                  <span class="w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] ${index === 0 ? 'bg-amber-400 text-white' : 'bg-slate-200 text-slate-600'}">${index + 1}</span>
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center font-medium text-[9px] ${index === 0 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">${index + 1}</span>
                   <span class="font-medium text-slate-700">${p.name}</span>
                 </div>
-                <span class="font-bold text-slate-800">${p.quantity} ชิ้น</span>
+                <span class="font-semibold text-slate-800">${p.quantity} ชิ้น</span>
               </div>
             `).join('');
           }
 
           const salesBody = document.getElementById('recentSalesBody');
           if (res.recentSales.length === 0) {
-            salesBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400">ไม่มีข้อมูลการขาย</td></tr>`;
+            salesBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400 font-light">ไม่มีข้อมูลการขาย</td></tr>`;
           } else {
             salesBody.innerHTML = res.recentSales.map(s => `
-              <tr class="hover:bg-slate-50 transition-colors">
-                <td class="py-2 text-slate-500">${s.time}</td>
-                <td class="py-2 font-medium text-slate-700">${s.saleId}</td>
-                <td class="py-2"><span class="px-2 py-0.5 rounded-full text-[9px] font-medium ${s.paymentMethod === 'เงินสด' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}">${s.paymentMethod}</span></td>
-                <td class="py-2 text-right font-bold text-slate-800">${s.finalAmount.toFixed(2)} ฿</td>
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="py-2 text-slate-400 font-light">${s.time}</td>
+                <td class="py-2 font-mono text-slate-600">${s.saleId}</td>
+                <td class="py-2"><span class="px-2 py-0.5 rounded-full text-[9px] font-medium ${s.paymentMethod === 'เงินสด' ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-600'}">${s.paymentMethod}</span></td>
+                <td class="py-2 text-right font-semibold text-slate-800">${s.finalAmount.toFixed(2)} ฿</td>
               </tr>
             `).join('');
           }
@@ -526,14 +566,14 @@
     function renderProducts() {
       const list = document.getElementById('productList');
       list.innerHTML = products.map(p => `
-        <div onclick='addToCart(${JSON.stringify(p)})' class="p-2.5 bg-white border border-slate-200/80 rounded-2xl active:scale-95 transition-transform flex flex-col justify-between h-24 md:h-28">
+        <div onclick='addToCart(${JSON.stringify(p)})' class="p-3 bg-white border border-slate-200/60 hover:border-slate-300 rounded-2xl active:scale-95 transition-all cursor-pointer flex flex-col justify-between h-24 md:h-28 shadow-xs">
           <div>
-            <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full font-medium">${p.Category}</span>
-            <h3 class="font-semibold text-slate-700 text-xs mt-1 line-clamp-1">${p.Name}</h3>
+            <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md font-normal">${p.Category || p.category || 'ทั่วไป'}</span>
+            <h3 class="font-medium text-slate-800 text-xs mt-1 line-clamp-1">${p.Name || p.name}</h3>
           </div>
           <div class="flex justify-between items-end">
-            <span class="font-bold text-slate-800 text-xs md:text-sm">${p.Price.toFixed(2)} ฿</span>
-            <span class="text-[9px] ${p.Stock > 0 ? 'text-slate-400' : 'text-rose-500 font-bold'}">คลัง ${p.Stock}</span>
+            <span class="font-semibold text-slate-800 text-xs md:text-sm">${(p.Price || p.price || 0).toFixed(2)} ฿</span>
+            <span class="text-[9px] ${(p.Stock || p.stock || 0) > 0 ? 'text-slate-400 font-light' : 'text-rose-500 font-medium'}">คลัง ${p.Stock || p.stock || 0}</span>
           </div>
         </div>
       `).join('');
@@ -547,18 +587,18 @@
         container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-400 text-xs font-light">ยังไม่มีสินค้าในตะกร้า</div>`;
       } else {
         container.innerHTML = cart.map(i => `
-          <div class="flex justify-between items-center bg-slate-50/80 p-2 rounded-xl text-xs">
+          <div class="flex justify-between items-center bg-slate-50/60 border border-slate-100 p-2 rounded-xl text-xs">
             <div class="flex-1 pr-2">
-              <h4 class="font-medium text-slate-700 line-clamp-1">${i.Name}</h4>
+              <h4 class="font-medium text-slate-700 line-clamp-1">${i.Name || i.name}</h4>
               <p class="text-[9px] text-slate-400">${i.Price.toFixed(2)} ฿</p>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-2">
               <div class="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden">
-                <button onclick="updateQty('${i.Product_ID}', -1)" class="px-2 py-0.5 font-bold text-slate-600">-</button>
+                <button onclick="updateQty('${i.Product_ID || i.id}', -1)" class="px-2 py-0.5 text-slate-500 hover:bg-slate-50 font-medium">-</button>
                 <span class="px-1.5 font-medium text-slate-700">${i.Quantity}</span>
-                <button onclick="updateQty('${i.Product_ID}', 1)" class="px-2 py-0.5 font-bold text-slate-600">+</button>
+                <button onclick="updateQty('${i.Product_ID || i.id}', 1)" class="px-2 py-0.5 text-slate-500 hover:bg-slate-50 font-medium">+</button>
               </div>
-              <span class="font-bold text-slate-800 w-12 text-right">${i.Subtotal.toFixed(2)}</span>
+              <span class="font-semibold text-slate-800 w-12 text-right">${i.Subtotal.toFixed(2)}</span>
             </div>
           </div>
         `).join('');
@@ -575,37 +615,50 @@
     }
 
     function addToCart(product) {
-      if (product.Stock <= 0) {
+      const pId = product.Product_ID || product.id;
+      const pStock = product.Stock !== undefined ? product.Stock : product.stock;
+      const pPrice = product.Price !== undefined ? product.Price : product.price;
+      const pName = product.Name || product.name;
+
+      if (pStock <= 0) {
         alert('สินค้าหมดสต็อก');
         return;
       }
-      const existing = cart.find(i => i.Product_ID === product.Product_ID);
+      const existing = cart.find(i => (i.Product_ID || i.id) === pId);
       if (existing) {
-        if (existing.Quantity + 1 > product.Stock) {
+        if (existing.Quantity + 1 > pStock) {
           alert('จำนวนสินค้าเกินสต็อกที่มี');
           return;
         }
         existing.Quantity++;
         existing.Subtotal = existing.Quantity * existing.Price;
       } else {
-        cart.push({ ...product, Quantity: 1, Subtotal: product.Price });
+        cart.push({ 
+          ...product, 
+          Product_ID: pId,
+          Name: pName,
+          Price: pPrice,
+          Quantity: 1, 
+          Subtotal: pPrice 
+        });
       }
       renderCart();
     }
 
     function updateQty(id, delta) {
-      const item = cart.find(i => i.Product_ID === id);
+      const item = cart.find(i => (i.Product_ID || i.id) === id);
       if (!item) return;
-      const prod = products.find(p => p.Product_ID === id);
+      const prod = products.find(p => (p.Product_ID || p.id) === id);
+      const stock = prod ? (prod.Stock !== undefined ? prod.Stock : prod.stock) : 999;
 
-      if (delta > 0 && item.Quantity + delta > prod.Stock) {
+      if (delta > 0 && item.Quantity + delta > stock) {
         alert('จำนวนสินค้าเกินสต็อกที่มี');
         return;
       }
 
       item.Quantity += delta;
       if (item.Quantity <= 0) {
-        cart = cart.filter(i => i.Product_ID !== id);
+        cart = cart.filter(i => (i.Product_ID || i.id) !== id);
       } else {
         item.Subtotal = item.Quantity * item.Price;
       }
@@ -628,18 +681,18 @@
       document.getElementById('manageProductCount').innerText = `${products.length} รายการ`;
 
       if (products.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400">ไม่พบรายการสินค้า</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400 font-light">ไม่พบรายการสินค้า</td></tr>`;
         return;
       }
 
       tbody.innerHTML = products.map(p => `
-        <tr class="hover:bg-slate-50/80 transition-colors">
-          <td class="p-2.5 font-mono text-slate-400">${p.Product_ID}</td>
-          <td class="p-2.5 font-medium text-slate-700">${p.Name}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[9px]">${p.Category}</span></td>
-          <td class="p-2.5 text-right font-medium">${p.Price.toFixed(2)} ฿</td>
-          <td class="p-2.5 text-right ${p.Stock < 5 ? 'text-rose-500 font-bold' : ''}">${p.Stock}</td>
-          <td class="p-2.5 text-center text-slate-400 font-mono">${p.Barcode || '-'}</td>
+        <tr class="hover:bg-slate-50/60 transition-colors">
+          <td class="p-2.5 font-mono text-slate-400">${p.Product_ID || p.id}</td>
+          <td class="p-2.5 font-medium text-slate-700">${p.Name || p.name}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[9px]">${p.Category || p.category || 'ทั่วไป'}</span></td>
+          <td class="p-2.5 text-right font-medium text-slate-700">${(p.Price || p.price || 0).toFixed(2)} ฿</td>
+          <td class="p-2.5 text-right ${(p.Stock || p.stock || 0) < 5 ? 'text-rose-500 font-semibold' : ''}">${p.Stock || p.stock || 0}</td>
+          <td class="p-2.5 text-center text-slate-400 font-mono">${p.Barcode || p.barcode || '-'}</td>
         </tr>
       `).join('');
     }
@@ -697,13 +750,22 @@
     }
 
     function showReceipt(saleId, payload, cashReceived, change) {
+      const now = new Date();
+      document.getElementById('receiptTime').innerText = now.toLocaleString('th-TH');
       document.getElementById('receiptSaleId').innerText = '#' + saleId;
-      document.getElementById('receiptItems').innerHTML = payload.cart.map(i => `
-        <div class="flex justify-between text-slate-600">
-          <span>${i.Name} x ${i.Quantity}</span>
-          <span>${i.Subtotal.toFixed(2)}</span>
-        </div>
-      `).join('');
+      
+      document.getElementById('receiptItems').innerHTML = payload.cart.map(i => {
+        // ดึงชื่อสินค้าจากตารางสินค้า หากไม่มีใน object ให้แมตช์ด้วย ID
+        const foundProd = products.find(p => String(p.Product_ID) === String(i.Product_ID || i.id));
+        const productName = i.Name || i.name || (foundProd ? (foundProd.Name || foundProd.name) : 'สินค้า');
+
+        return `
+          <div class="flex justify-between text-slate-600">
+            <span>${productName} x ${i.Quantity}</span>
+            <span>${i.Subtotal.toFixed(2)}</span>
+          </div>
+        `;
+      }).join('');
 
       document.getElementById('receiptTotal').innerText = payload.totalAmount.toFixed(2) + ' ฿';
       document.getElementById('receiptDiscount').innerText = payload.discount.toFixed(2) + ' ฿';
@@ -713,11 +775,17 @@
 
       document.getElementById('receiptModal').classList.remove('hidden');
       document.getElementById('receiptModal').classList.add('flex');
+      
+      feather.replace();
     }
 
     function closeReceiptModal() {
       document.getElementById('receiptModal').classList.add('hidden');
       document.getElementById('receiptModal').classList.remove('flex');
+    }
+
+    function printReceipt() {
+      window.print();
     }
 
     // PromptPay Helper
