@@ -1,5 +1,5 @@
-// ใส่ ID ของ Google Sheet ที่ดึงมาจาก URL เรียบร้อยแล้ว
-const SPREADSHEET_ID = "1L19bgi_elq4cT-_eVPVc8Iymypm29CFbniQSv_t7F5I"; 
+// ใส่ ID ของ Google Sheet
+const SPREADSHEET_ID = "1L19bgi_elq4cT-_eVPVc8Iymypm29CFbniQSv_t7F5I";
 
 function getSS() {
   if (SPREADSHEET_ID && SPREADSHEET_ID.trim() !== "") {
@@ -8,29 +8,73 @@ function getSS() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
-function doGet() {
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
-    .setTitle('Smart POS System')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+// ตรวจสอบและดึง Sheet ถ้าไม่มีให้สร้างให้อัตโนมัติ
+function getOrCreateSheet(ss, sheetName, headers) {
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    if (headers && headers.length > 0) {
+      sheet.appendRow(headers);
+    }
+  }
+  return sheet;
 }
 
-// 1. ดึงข้อมูลสินค้าทั้งหมด
+// รองรับ GET Request
+function doGet(e) {
+  const action = e ? e.parameter.action : null;
+  let result = {};
+
+  if (action === "getProducts") {
+    result = getProducts();
+  } else if (action === "getDailySalesSummary") {
+    const date = e.parameter.date;
+    result = getDailySalesSummary(date);
+  } else {
+    result = { status: "error", message: "Invalid action" };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// รองรับ POST Request
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    let result = {};
+
+    if (action === "addProduct") {
+      result = addProduct(data.payload);
+    } else if (action === "processSale") {
+      result = processSale(data.payload);
+    } else {
+      result = { status: "error", message: "Invalid action" };
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ------------------- ฟังก์ชันประมวลผล -------------------
+
 function getProducts() {
   try {
     const ss = getSS();
-    const sheet = ss.getSheetByName("Products");
-    if (!sheet) return [];
+    const sheet = getOrCreateSheet(ss, "Products", ["Product_ID", "Name", "Category", "Price", "Stock", "Barcode"]);
     
     const data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return []; // มีแค่ Header
+    if (data.length <= 1) return [];
     
     const products = [];
-    
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (row[0] !== "" && row[0] !== null && row[0] !== undefined) {
+      if (row[0] !== "" && row[0] !== null) {
         products.push({
           Product_ID: String(row[0]),
           Name: String(row[1] || ''),
@@ -43,17 +87,14 @@ function getProducts() {
     }
     return products;
   } catch (e) {
-    Logger.log("Error in getProducts: " + e.toString());
-    throw new Error("ไม่สามารถดึงข้อมูลสินค้าได้: " + e.toString());
+    return [];
   }
 }
 
-// 2. บันทึกสินค้าใหม่
 function addProduct(p) {
   try {
     const ss = getSS();
-    const sheet = ss.getSheetByName("Products");
-    if (!sheet) throw new Error("ไม่พบแผ่นงานชื่อ 'Products'");
+    const sheet = getOrCreateSheet(ss, "Products", ["Product_ID", "Name", "Category", "Price", "Stock", "Barcode"]);
 
     const id = "P" + new Date().getTime().toString().slice(-6);
     sheet.appendRow([id, p.name, p.category, Number(p.price), Number(p.stock), p.barcode]);
@@ -63,17 +104,13 @@ function addProduct(p) {
   }
 }
 
-// 3. บันทึกการขาย
 function processSale(payload) {
   try {
     const ss = getSS();
-    const salesSheet = ss.getSheetByName("Sales");
-    const detailsSheet = ss.getSheetByName("SaleDetails");
-    const productsSheet = ss.getSheetByName("Products");
-
-    if (!salesSheet || !detailsSheet || !productsSheet) {
-      throw new Error("แผ่นงาน Sales, SaleDetails หรือ Products ไม่ครบถ้วน");
-    }
+    const salesSheet = getOrCreateSheet(ss, "Sales", ["Sale_ID", "Date", "TotalAmount", "Discount", "FinalAmount", "PaymentMethod"]);
+    // เพิ่มคอลัมน์ Name ลงในตาราง SaleDetails
+    const detailsSheet = getOrCreateSheet(ss, "SaleDetails", ["Sale_ID", "Product_ID", "Name", "Quantity", "Subtotal"]);
+    const productsSheet = getOrCreateSheet(ss, "Products", ["Product_ID", "Name", "Category", "Price", "Stock", "Barcode"]);
 
     const saleId = "INV" + new Date().getTime().toString().slice(-6);
     const now = new Date();
@@ -90,10 +127,13 @@ function processSale(payload) {
     const pData = productsSheet.getDataRange().getValues();
 
     payload.cart.forEach(item => {
-      detailsSheet.appendRow([saleId, item.Product_ID, item.Quantity, item.Subtotal]);
+      // บันทึก Name เพิ่มลงในคอลัมน์ที่ 3
+      const pId = item.Product_ID || item.id;
+      const pName = item.Name || item.name || '';
+      detailsSheet.appendRow([saleId, pId, pName, item.Quantity, item.Subtotal]);
 
       for (let i = 1; i < pData.length; i++) {
-        if (String(pData[i][0]) === String(item.Product_ID)) {
+        if (String(pData[i][0]) === String(pId)) {
           const currentStock = Number(pData[i][4]) || 0;
           const newStock = Math.max(0, currentStock - item.Quantity);
           productsSheet.getRange(i + 1, 5).setValue(newStock);
@@ -104,17 +144,16 @@ function processSale(payload) {
 
     return { success: true, saleId: saleId };
   } catch (e) {
-    throw new Error("เกิดข้อผิดพลาดในการบันทึกขาย: " + e.toString());
+    return { success: false, message: e.toString() };
   }
 }
 
-// 4. ดึงข้อมูลสรุปยอดขายประจำวัน
 function getDailySalesSummary(targetDateStr) {
   try {
     const ss = getSS();
-    const salesSheet = ss.getSheetByName("Sales");
-    const detailsSheet = ss.getSheetByName("SaleDetails");
-    const productsSheet = ss.getSheetByName("Products");
+    const salesSheet = getOrCreateSheet(ss, "Sales", ["Sale_ID", "Date", "TotalAmount", "Discount", "FinalAmount", "PaymentMethod"]);
+    const detailsSheet = getOrCreateSheet(ss, "SaleDetails", ["Sale_ID", "Product_ID", "Name", "Quantity", "Subtotal"]);
+    const productsSheet = getOrCreateSheet(ss, "Products", ["Product_ID", "Name", "Category", "Price", "Stock", "Barcode"]);
 
     let totalSales = 0, totalDiscount = 0, netRevenue = 0, totalOrders = 0;
     const matchedSaleIds = [];
@@ -156,7 +195,8 @@ function getDailySalesSummary(targetDateStr) {
         const row = detailsData[i];
         const sId = String(row[0]);
         const pId = String(row[1]);
-        const qty = Number(row[2]) || 0;
+        // รองรับทั้งโครงสร้างเก่าและโครงสร้างใหม่ที่แทรกคอลัมน์ Name
+        const qty = Number(row[3]) || Number(row[2]) || 0;
 
         if (matchedSaleIds.includes(sId)) {
           prodCountMap[pId] = (prodCountMap[pId] || 0) + qty;
